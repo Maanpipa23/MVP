@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Points de Collecte DEEE</title>
+  <link rel="stylesheet" href="MVP.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    header {
+      background-color: #00796B;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 10px;
+    }
+    .form-section, .map {
+      background: white;
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    #results {
+      margin-top: 20px;
+    }
+    iframe {
+      width: 100%;
+      height: 300px;
+      border: none;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Recherche de Points de Collecte de Déchets Électroniques</h1>
+  </header>
+  <main>
+    <section class="form-section">
+      <form id="search-form">
+        <label for="address">Votre adresse :</label>
+        <input type="text" id="address" placeholder="ex: 10 Rue Sextius Michel, 75015 Paris, France" required>
+        <label for="type">Type de déchet :</label>
+        <select id="type">
+          <option value="ordinateur">Ordinateur/Smartphone</option>
+          <option value="batterie">Batterie</option>
+          <option value="electromenager">Electroménager</option>
+        </select>
+        <button type="submit">Rechercher</button>
+      </form>
+      <div id="results"></div>
+    </section>
+  </main>
+  <script>
+    const points = {
+      ordinateur: [
+        {
+          name: "Déchetterie fixe - Avenue André Morizet",
+          address: "26 Avenue André Morizet, Boulogne-Billancourt",
+          lat: 48.8364,
+          lon: 2.2446,
+          map: "https://www.google.com/maps?q=26+Avenue+Andr%C3%A9+Morizet+Boulogne-Billancourt&output=embed"
+        },
+        {
+          name: "Déchetterie de Meudon",
+          address: "Route du Pavé des Gardes, Meudon",
+          lat: 48.7986,
+          lon: 2.2275,
+          map: "https://www.google.com/maps?q=Route+du+Pav%C3%A9+des+Gardes,+Meudon&output=embed"
+        },
+        {
+          name: "Espace tri - Quai d’Issy",
+          address: "Quai d’Issy-les-Moulineaux, Paris 15e",
+          lat: 48.8382,
+          lon: 2.2758,
+          map: "https://www.google.com/maps?q=Quai+d%27Issy-les-Moulineaux+Paris&output=embed"
+        }
+      ],
+      batterie: [
+        {
+          name: "Collecte Ecosystem - Marché Escudier",
+          address: "9 boulevard Jean Jaurès, Boulogne-Billancourt",
+          lat: 48.8358,
+          lon: 2.2402,
+          map: "https://www.google.com/maps?q=9+boulevard+Jean+Jaur%C3%A8s+Boulogne-Billancourt&output=embed"
+        },
+        {
+          name: "Borne de recyclage - Carrefour Issy-les-Moulineaux",
+          address: "16 Rue Guynemer, Issy-les-Moulineaux",
+          lat: 48.8224,
+          lon: 2.2732,
+          map: "https://www.google.com/maps?q=16+Rue+Guynemer+Issy-les-Moulineaux&output=embed"
+        },
+        {
+          name: "Point mobile - Avenue Édouard-Vaillant",
+          address: "68 avenue Édouard-Vaillant, Boulogne-Billancourt",
+          lat: 48.8345,
+          lon: 2.2439,
+          map: "https://www.google.com/maps?q=68+avenue+%C3%89douard-Vaillant+Boulogne-Billancourt&output=embed"
+        }
+      ],
+      electromenager: [
+        {
+          name: "Collecte GPSO - Avenue Roger Salengro",
+          address: "9 avenue Roger Salengro, Boulogne-Billancourt",
+          lat: 48.8326,
+          lon: 2.2448,
+          map: "https://www.google.com/maps?q=9+avenue+Roger+Salengro+Boulogne-Billancourt&output=embed"
+        },
+        {
+          name: "Déchetterie de Paris 15e",
+          address: "Quai d’Issy-les-Moulineaux, Paris 15e",
+          lat: 48.8382,
+          lon: 2.2758,
+          map: "https://www.google.com/maps?q=Quai+d%27Issy-les-Moulineaux+Paris&output=embed"
+        },
+        {
+          name: "Déchetterie de Meudon",
+          address: "Route du Pavé des Gardes, Meudon",
+          lat: 48.7986,
+          lon: 2.2275,
+          map: "https://www.google.com/maps?q=Route+du+Pav%C3%A9+des+Gardes+Meudon&output=embed"
+        }
+      ]
+    };
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+    async function getCoordinates(address) {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+      const data = await response.json();
+      if (data.length > 0) {
+        return {
+          lat: parseFloat(data[0].lat),
+          lon: parseFloat(data[0].lon)
+        };
+      } else {
+        throw new Error("Adresse non trouvée.");
+      }
+    }
+    document.getElementById("search-form").addEventListener("submit", async function(event) {
+      event.preventDefault();
+      const type = document.getElementById("type").value;
+      const userAddress = document.getElementById("address").value;
+      const selectedPoints = points[type];
+      try {
+        const userCoords = await getCoordinates(userAddress);
+        let closestPoint = null;
+        let minDistance = Infinity;
+        selectedPoints.forEach(point => {
+          const distance = haversine(userCoords.lat, userCoords.lon, point.lat, point.lon);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestPoint = point;
+          }
+        });
+        document.getElementById("results").innerHTML =
+          `<h3>Point le plus proche :</h3>
+           <p><strong>${closestPoint.name}</strong><br>
+           Adresse : ${closestPoint.address}</p>
+           <iframe src="${closestPoint.map}"></iframe>`;
+      } catch (err) {
+        document.getElementById("results").innerHTML = "<p style='color:red;'>Erreur : " + err.message + "</p>";
+      }
+    });
+  </script>
+</body>
+</html>
